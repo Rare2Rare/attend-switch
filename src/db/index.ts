@@ -3,7 +3,7 @@ import postgres from "postgres";
 import * as schema from "./schema";
 
 const client = postgres(process.env.DATABASE_URL!, {
-  prepare: false, // Required for Supabase Supavisor Transaction pool mode
+  prepare: false,
 });
 
 export const db = drizzle(client, { schema });
