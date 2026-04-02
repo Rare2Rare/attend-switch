@@ -23,14 +23,14 @@ export function getNowJST(): { hours: number; minutes: number; dateStr: string }
     day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
-    hour12: false,
+    hourCycle: "h23",
   }).formatToParts(now);
 
   const get = (type: string) =>
     parts.find((p) => p.type === type)?.value ?? "0";
 
   return {
-    hours: parseInt(get("hour"), 10),
+    hours: parseInt(get("hour"), 10) % 24,
     minutes: parseInt(get("minute"), 10),
     dateStr: `${get("year")}-${get("month")}-${get("day")}`,
   };
