@@ -45,6 +45,7 @@ export const responses = pgTable(
     displayName: varchar("display_name", { length: 50 }).notNull(),
     status: responseStatusEnum("status").notNull().default("pending"),
     comment: varchar("comment", { length: 200 }),
+    passphrase: varchar("passphrase", { length: 4 }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

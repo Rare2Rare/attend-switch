@@ -19,3 +19,7 @@ export function getSavedDisplayName(): string {
 export function saveDisplayName(name: string): void {
   localStorage.setItem(NAME_KEY, name);
 }
+
+export function setParticipantToken(token: string): void {
+  localStorage.setItem(TOKEN_KEY, token);
+}

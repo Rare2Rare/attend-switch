@@ -13,6 +13,7 @@ export async function submitResponse(data: {
   displayName: string;
   status: "attending" | "absent" | "pending";
   comment?: string;
+  passphrase?: string;
 }) {
   const parsed = submitResponseSchema.safeParse(data);
   if (!parsed.success) {
@@ -21,6 +22,7 @@ export async function submitResponse(data: {
 
   const { threadPublicId, participantToken, displayName, status } = parsed.data;
   const comment = data.comment?.slice(0, 200) || null;
+  const passphrase = data.passphrase?.replace(/\D/g, "").slice(0, 4) || null;
 
   const thread = await db.query.threads.findFirst({
     where: eq(threads.publicId, threadPublicId),
@@ -54,6 +56,7 @@ export async function submitResponse(data: {
         status,
         displayName: displayName.trim(),
         comment,
+        ...(passphrase ? { passphrase } : {}),
         updatedAt: new Date(),
       })
       .where(eq(responses.id, existing[0].id));
@@ -64,6 +67,7 @@ export async function submitResponse(data: {
       displayName: displayName.trim(),
       status,
       comment,
+      passphrase,
     });
   }
 
@@ -119,4 +123,47 @@ export async function deleteResponse(data: {
   revalidatePath("/");
 
   return { success: true as const };
+}
+
+export async function claimResponse(data: {
+  threadPublicId: string;
+  displayName: string;
+  passphrase: string;
+}) {
+  const thread = await db.query.threads.findFirst({
+    where: eq(threads.publicId, data.threadPublicId),
+  });
+
+  if (!thread) {
+    return { success: false as const, error: "スレッドが見つかりません" };
+  }
+
+  const trimmedName = data.displayName.trim();
+  const passphrase = data.passphrase.replace(/\D/g, "").slice(0, 4);
+
+  if (!trimmedName || passphrase.length !== 4) {
+    return { success: false as const, error: "名前と4桁の合言葉を入力してください" };
+  }
+
+  const existing = await db
+    .select()
+    .from(responses)
+    .where(
+      and(
+        eq(responses.threadId, thread.id),
+        eq(responses.displayName, trimmedName),
+        eq(responses.passphrase, passphrase),
+        isNull(responses.deletedAt)
+      )
+    )
+    .limit(1);
+
+  if (existing.length === 0) {
+    return { success: false as const, error: "名前または合言葉が一致しません" };
+  }
+
+  return {
+    success: true as const,
+    participantToken: existing[0].participantToken,
+  };
 }

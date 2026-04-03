@@ -15,6 +15,13 @@
       "when": 1775210040858,
       "tag": "0001_uneven_molten_man",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1775218994485,
+      "tag": "0002_serious_mathemanic",
+      "breakpoints": true
     }
   ]
 }

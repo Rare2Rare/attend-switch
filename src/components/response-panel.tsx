@@ -1,11 +1,16 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { submitResponse, deleteResponse } from "@/actions/response";
+import {
+  submitResponse,
+  deleteResponse,
+  claimResponse,
+} from "@/actions/response";
 import {
   getParticipantToken,
   getSavedDisplayName,
   saveDisplayName,
+  setParticipantToken,
 } from "@/lib/participant";
 import { toast } from "sonner";
 import type { ResponseStatus, Response } from "@/db/schema";
@@ -22,13 +27,15 @@ const STATUS_BUTTONS: {
     label: "参加",
     className:
       "border-green-300 bg-green-50 text-green-800 hover:bg-green-100",
-    activeClassName: "border-green-500 bg-green-500 text-white ring-2 ring-green-300",
+    activeClassName:
+      "border-green-500 bg-green-500 text-white ring-2 ring-green-300",
   },
   {
     status: "absent",
     label: "不参加",
     className: "border-red-300 bg-red-50 text-red-800 hover:bg-red-100",
-    activeClassName: "border-red-500 bg-red-500 text-white ring-2 ring-red-300",
+    activeClassName:
+      "border-red-500 bg-red-500 text-white ring-2 ring-red-300",
   },
   {
     status: "pending",
@@ -51,8 +58,12 @@ export function ResponsePanel({
 }) {
   const [name, setName] = useState("");
   const [comment, setComment] = useState("");
+  const [passphrase, setPassphrase] = useState("");
   const [token, setToken] = useState("");
   const [isPending, startTransition] = useTransition();
+  const [claimMode, setClaimMode] = useState(false);
+  const [claimName, setClaimName] = useState("");
+  const [claimPass, setClaimPass] = useState("");
 
   useEffect(() => {
     setToken(getParticipantToken());
@@ -84,6 +95,7 @@ export function ResponsePanel({
         displayName: trimmedName,
         status,
         comment: comment.trim() || undefined,
+        passphrase: passphrase || undefined,
       });
       if (result.success) {
         const label = STATUS_BUTTONS.find((b) => b.status === status)?.label;
@@ -102,6 +114,34 @@ export function ResponsePanel({
       });
       if (result.success) {
         toast.success("取り消しました");
+      } else {
+        toast.error(result.error);
+      }
+    });
+  };
+
+  const handleClaim = () => {
+    const trimmedName = claimName.trim();
+    if (!trimmedName || claimPass.length !== 4) {
+      toast.error("名前と4桁の合言葉を入力してください");
+      return;
+    }
+
+    startTransition(async () => {
+      const result = await claimResponse({
+        threadPublicId,
+        displayName: trimmedName,
+        passphrase: claimPass,
+      });
+      if (result.success) {
+        setParticipantToken(result.participantToken);
+        setToken(result.participantToken);
+        saveDisplayName(trimmedName);
+        setName(trimmedName);
+        setClaimMode(false);
+        setClaimName("");
+        setClaimPass("");
+        toast.success("認証しました。編集・取り消しが可能です");
       } else {
         toast.error(result.error);
       }
@@ -177,6 +217,25 @@ export function ResponsePanel({
         />
       </div>
 
+      <div>
+        <label
+          htmlFor="passphrase"
+          className="mb-1 block text-sm font-medium text-gray-700"
+        >
+          合言葉（4桁数字）
+        </label>
+        <input
+          id="passphrase"
+          type="password"
+          inputMode="numeric"
+          value={passphrase}
+          onChange={(e) => setPassphrase(e.target.value.replace(/\D/g, "").slice(0, 4))}
+          maxLength={4}
+          placeholder="任意・別端末から編集する際に使います"
+          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+        />
+      </div>
+
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         {STATUS_BUTTONS.map((btn) => {
           const isActive = myResponse?.status === btn.status;
@@ -195,6 +254,60 @@ export function ResponsePanel({
           );
         })}
       </div>
+
+      {!myResponse && (
+        <div className="border-t border-gray-100 pt-3">
+          {!claimMode ? (
+            <button
+              type="button"
+              onClick={() => setClaimMode(true)}
+              className="text-sm text-blue-600 hover:underline"
+            >
+              別の端末から登録済みの方はこちら
+            </button>
+          ) : (
+            <div className="space-y-3 rounded-md bg-gray-50 p-3">
+              <p className="text-sm font-medium text-gray-700">
+                登録時の名前と合言葉で認証
+              </p>
+              <input
+                type="text"
+                value={claimName}
+                onChange={(e) => setClaimName(e.target.value)}
+                maxLength={50}
+                placeholder="登録時の名前"
+                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+              />
+              <input
+                type="password"
+                inputMode="numeric"
+                value={claimPass}
+                onChange={(e) => setClaimPass(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                maxLength={4}
+                placeholder="4桁の合言葉"
+                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+              />
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={handleClaim}
+                  disabled={isPending}
+                  className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {isPending ? "認証中..." : "認証する"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setClaimMode(false); setClaimName(""); setClaimPass(""); }}
+                  className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
+                >
+                  キャンセル
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

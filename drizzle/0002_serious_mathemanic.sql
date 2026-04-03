@@ -1,0 +1,1 @@
+ALTER TABLE "responses" ADD COLUMN "passphrase" varchar(4);
