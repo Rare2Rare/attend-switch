@@ -50,6 +50,7 @@ export function ResponsePanel({
   isDeadlinePassed: boolean;
 }) {
   const [name, setName] = useState("");
+  const [comment, setComment] = useState("");
   const [token, setToken] = useState("");
   const [isPending, startTransition] = useTransition();
 
@@ -61,6 +62,12 @@ export function ResponsePanel({
   const myResponse = existingResponses.find(
     (r) => r.participantToken === token && !r.deletedAt
   );
+
+  useEffect(() => {
+    if (myResponse?.comment) {
+      setComment(myResponse.comment);
+    }
+  }, [myResponse?.comment]);
 
   const handleSubmit = (status: ResponseStatus) => {
     const trimmedName = name.trim();
@@ -76,6 +83,7 @@ export function ResponsePanel({
         participantToken: token,
         displayName: trimmedName,
         status,
+        comment: comment.trim() || undefined,
       });
       if (result.success) {
         const label = STATUS_BUTTONS.find((b) => b.status === status)?.label;
@@ -147,6 +155,24 @@ export function ResponsePanel({
           onChange={(e) => setName(e.target.value)}
           maxLength={50}
           placeholder="名前を入力"
+          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+        />
+      </div>
+
+      <div>
+        <label
+          htmlFor="comment"
+          className="mb-1 block text-sm font-medium text-gray-700"
+        >
+          コメント
+        </label>
+        <input
+          id="comment"
+          type="text"
+          value={comment}
+          onChange={(e) => setComment(e.target.value)}
+          maxLength={200}
+          placeholder="一言コメント（任意）"
           className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
         />
       </div>

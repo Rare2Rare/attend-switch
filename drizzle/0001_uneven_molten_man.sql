@@ -1,0 +1,1 @@
+ALTER TABLE "responses" ADD COLUMN "comment" varchar(200);

@@ -25,19 +25,21 @@ export function ResponseList({ responses }: { responses: Response[] }) {
   return (
     <div className="divide-y divide-gray-100">
       {sorted.map((r) => (
-        <div
-          key={r.id}
-          className="flex items-center justify-between gap-2 py-2.5"
-        >
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-gray-900">
-              {r.displayName}
+        <div key={r.id} className="py-2.5">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-gray-900">
+                {r.displayName}
+              </span>
+              <StatusBadge status={r.status} />
+            </div>
+            <span className="shrink-0 text-xs text-gray-400">
+              {formatDateTimeJST(r.updatedAt)}
             </span>
-            <StatusBadge status={r.status} />
           </div>
-          <span className="shrink-0 text-xs text-gray-400">
-            {formatDateTimeJST(r.updatedAt)}
-          </span>
+          {r.comment && (
+            <p className="mt-1 text-xs text-gray-500">{r.comment}</p>
+          )}
         </div>
       ))}
     </div>

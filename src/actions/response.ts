@@ -12,6 +12,7 @@ export async function submitResponse(data: {
   participantToken: string;
   displayName: string;
   status: "attending" | "absent" | "pending";
+  comment?: string;
 }) {
   const parsed = submitResponseSchema.safeParse(data);
   if (!parsed.success) {
@@ -19,6 +20,7 @@ export async function submitResponse(data: {
   }
 
   const { threadPublicId, participantToken, displayName, status } = parsed.data;
+  const comment = data.comment?.slice(0, 200) || null;
 
   const thread = await db.query.threads.findFirst({
     where: eq(threads.publicId, threadPublicId),
@@ -51,6 +53,7 @@ export async function submitResponse(data: {
       .set({
         status,
         displayName: displayName.trim(),
+        comment,
         updatedAt: new Date(),
       })
       .where(eq(responses.id, existing[0].id));
@@ -60,6 +63,7 @@ export async function submitResponse(data: {
       participantToken,
       displayName: displayName.trim(),
       status,
+      comment,
     });
   }
 
